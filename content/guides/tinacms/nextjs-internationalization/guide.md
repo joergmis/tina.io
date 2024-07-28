@@ -84,6 +84,37 @@ const getStaticPaths = async ({ locales }) => {
 }
 ```
 
+When using pages with multiple languages, the file `/pages/[filename].tsx` has to be adjusted as well.
+
+```js
+/**
+ * /pages/[filename].tsx
+ */
+import { client } from "../.tina/__generated__/client";
+
+// ...
+
+// `locales` is provided to `getStaticPaths` and matches `locales` in the `config`
+export const getStaticPaths = async ({ locales }) => {
+    const pageConnection = await client.queries.pageConnection();
+    const paths = [];
+
+    pageConnection.data.pageConnection.edges.map((page: any) => {
+        locales.map((locale: any) => {
+            paths.push({
+                params: { filename: page.node._sys.filename },
+                locale,
+            });
+        });
+    });
+
+    return {
+        paths,
+        fallback: true,
+    }
+};
+```
+
 ## Modify `getStaticProps()`
 
 Next, we'll want to update `getStaticProps` to include `locale` as part of the `relativePath`.
@@ -106,6 +137,26 @@ const getStaticProps = async({ params, locale }) {
     }
   }
 }
+```
+
+Again, for pages in different languages, adjust the file `/pages/[filename].tsx`.
+
+```js
+/**
+ * /pages/[filename].tsx
+ */
+
+// `locale` is provided alongside `params`
+export const getStaticProps = async ({ params, locale }) => {
+    const tinaProps = await client.queries.contentQuery({
+        relativePath: `${locale}/${params.filename}.md`,
+    });
+    return {
+        props: {
+            ...tinaProps
+        },
+    };
+};
 ```
 
 ## Create Locale-Ready Documents
